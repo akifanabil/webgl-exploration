@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimal-ui" />    
+    <link rel="stylesheet" href="style.css">
+    <title>WebGL Exploration</title>
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <h1>WebGL Exploration</h1>
+    <div class = 'container'>
+        <canvas id="c1"></canvas>
+        <div class="uiContainer">
+            <div class="ui">
+                <div id="x1"></div>
+                <div id="y1"></div>
+                <div id="angle1"></div>
+                <div id="scaleX1"></div>
+                <div id="scaleY1"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class = 'container'>
+        <canvas id="c2"></canvas>
+        <div class="uiContainer">
+            <div class="ui">
+                <div id="x2"></div>
+                <div id="y2"></div>
+                <div id="angle2"></div>
+                <div id="scaleX2"></div>
+                <div id="scaleY2"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class = 'container'>
+        <canvas id="c3"></canvas>
+        <div class="uiContainer">
+            <div class="ui">
+                <div id="x3"></div>
+                <div id="y3"></div>
+                <div id="angle3"></div>
+                <div id="scaleX3"></div>
+                <div id="scaleY3"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class = 'container'>
+        <canvas id="c4"></canvas>
+        <div class="uiContainer">
+            <div class="ui">
+                <div id="x4"></div>
+                <div id="y4"></div>
+                <div id="angle4"></div>
+                <div id="scaleX4"></div>
+                <div id="scaleY4"></div>
+            </div>
+        </div>
+    </div>
+
+    <h1>Image Processing</h1>
+    <div class = 'container-img'>
+        <canvas id="c5" class="canvas-img"></canvas>
+        <p>Normal Image</p>
+    </div>
+
+    <div class = 'container-img'>
+        <canvas id="c6" class="canvas-img"></canvas>
+        <p>Image with blue and red color swapping</p>
+    </div>
+
+    <div class = 'container-img'>
+        <canvas id="c7" class="canvas-img"></canvas>
+        <p>Blurry Image</p>
+    </div>
+
+    <div class = 'container-img'>
+        <canvas id="c8" class="canvas-img"></canvas>
+        <div id="kernelContainer">
+            <div id="kernel"></div>
+        </div>   
+        <p>Image with Kernel Option</p>
+    </div>
+
+
+    
+    <!-- vertex shader -->
+    <script  id="vertex-shader-2d" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        attribute vec4 a_color;
+    
+        uniform mat3 u_matrix;
+    
+        varying vec4 v_color;
+    
+        void main() {
+            // Multiply the position by the matrix.
+            gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0, 1);
+    
+            // Set color
+            v_color = a_color;
+        }
+    </script>
+    
+    <!-- fragment shader -->
+    <script  id="fragment-shader-2d" type="x-shader/x-fragment">
+        precision mediump float;
+    
+        varying vec4 v_color;
+    
+        void main() {
+            gl_FragColor = v_color;
+        }
+    </script>
+
+    <!-- vertex shader -->
+    <script  id="vertex-shader-img-2d" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    attribute vec2 a_texCoord;
+    
+    uniform vec2 u_resolution;
+    
+    varying vec2 v_texCoord;
+    
+    void main() {
+       // convert the rectangle from pixels to 0.0 to 1.0
+       vec2 zeroToOne = a_position / u_resolution;
+    
+       // convert from 0->1 to 0->2
+       vec2 zeroToTwo = zeroToOne * 2.0;
+    
+       // convert from 0->2 to -1->+1 (clipspace)
+       vec2 clipSpace = zeroToTwo - 1.0;
+    
+       gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+    
+       // pass the texCoord to the fragment shader
+       // The GPU will interpolate this value between points.
+       v_texCoord = a_texCoord;
+    }
+    </script>
+
+    <!-- fragment shader for display an image -->
+    <script  id="fragment-shader-img1-2d" type="x-shader/x-fragment">
+    precision mediump float;
+    
+    // our texture
+    uniform sampler2D u_image;
+    uniform vec2 u_textureSize;
+    
+    // the texCoords passed in from the vertex shader.
+    varying vec2 v_texCoord;
+    
+    void main() {
+       vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+       gl_FragColor = texture2D(u_image, v_texCoord);
+    }
+    </script>
+
+    <!-- fragment shader for display an image with changing red and blue colors-->
+    <script  id="fragment-shader-img2-2d" type="x-shader/x-fragment">
+        precision mediump float;
+        
+        // our texture
+        uniform sampler2D u_image;
+        uniform vec2 u_textureSize;
+        
+        // the texCoords passed in from the vertex shader.
+        varying vec2 v_texCoord;
+        
+        void main() {
+            vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+            gl_FragColor = texture2D(u_image, v_texCoord).bgra;
+        }
+     </script>
+        
+
+    <!-- fragment shader for blurred image-->
+    <script  id="fragment-shader-img3-2d" type="x-shader/x-fragment">
+        precision mediump float;
+        
+        // our texture
+        uniform sampler2D u_image;
+        uniform vec2 u_textureSize;
+        
+        // the texCoords passed in from the vertex shader.
+        varying vec2 v_texCoord;
+        
+        void main() {
+        vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+        gl_FragColor = (
+            texture2D(u_image, v_texCoord) +
+            texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0)) +
+            texture2D(u_image, v_texCoord + vec2(-onePixel.x, 0.0))) / 3.0;
+        }
+    </script>
+
+    <!-- fragment shader -->
+    <script  id="fragment-shader-img4-2d" type="x-shader/x-fragment">
+        precision mediump float;
+        
+        // our texture
+        uniform sampler2D u_image;
+        uniform vec2 u_textureSize;
+        uniform float u_kernel[9];
+        uniform float u_kernelWeight;
+        
+        // the texCoords passed in from the vertex shader.
+        varying vec2 v_texCoord;
+        
+        void main() {
+        vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+        vec4 colorSum =
+            texture2D(u_image, v_texCoord + onePixel * vec2(-1, -1)) * u_kernel[0] +
+            texture2D(u_image, v_texCoord + onePixel * vec2( 0, -1)) * u_kernel[1] +
+            texture2D(u_image, v_texCoord + onePixel * vec2( 1, -1)) * u_kernel[2] +
+            texture2D(u_image, v_texCoord + onePixel * vec2(-1,  0)) * u_kernel[3] +
+            texture2D(u_image, v_texCoord + onePixel * vec2( 0,  0)) * u_kernel[4] +
+            texture2D(u_image, v_texCoord + onePixel * vec2( 1,  0)) * u_kernel[5] +
+            texture2D(u_image, v_texCoord + onePixel * vec2(-1,  1)) * u_kernel[6] +
+            texture2D(u_image, v_texCoord + onePixel * vec2( 0,  1)) * u_kernel[7] +
+            texture2D(u_image, v_texCoord + onePixel * vec2( 1,  1)) * u_kernel[8] ;
+        
+        gl_FragColor = vec4((colorSum / u_kernelWeight).rgb, 1);
+        }
+    </script>
+    
+    <!--
+    for most samples webgl-utils only provides shader compiling/linking and
+    canvas resizing because why clutter the examples with code that's the same in every sample.
+    See https://webglfundamentals.org/webgl/lessons/webgl-boilerplate.html
+    and https://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+    for webgl-utils, m3, m4, and webgl-lessons-ui.
+    -->
+    <script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/webgl-lessons-ui.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/m3.js"></script>
+
+</body>
+</html>
